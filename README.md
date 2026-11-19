@@ -326,6 +326,8 @@ I ran all of this against the running stack:
 
 Exported in [`n8n/workflows/`](n8n/workflows/). Imported with `pnpm n8n:import`.
 
+After editing a workflow in the n8n UI, run **`pnpm n8n:export`**. It exports from the running container and strips instance-specific data: project/owner info in `shared`, timestamps, version ids, pinned data. It then writes the files and runs `pnpm check:secrets`, so a secret can't be committed by accident.
+
 | File | Trigger | Flow |
 |---|---|---|
 | `request-notification.json` | Webhook `POST /webhook/lendloop-loan-events` | Verify signature → valid? (no → 401) → compose message → SMTP or mock → sign write-back (`sent` / `failed`) → POST `/automation/reminder-status` → 200 / 502 |

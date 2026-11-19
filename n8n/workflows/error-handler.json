@@ -3,14 +3,21 @@
   "name": "LendLoop - Error handler",
   "active": false,
   "isArchived": false,
-  "settings": { "executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "all" },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
   "nodes": [
     {
       "id": "e3e3e3e3-0000-4000-8000-000000000001",
       "name": "On workflow error",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "parameters": {}
     },
     {
@@ -18,7 +25,10 @@
       "name": "Log + sign failure report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "notes": "Logs to the n8n container output and reports the failure to Convex so it shows on the Admin → Automation tab. No payload data is forwarded, only workflow/node/message.",
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -30,7 +40,10 @@
       "name": "POST failure to Convex",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000,
@@ -40,21 +53,49 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-LendLoop-Signature", "value": "={{ $json.signature }}" },
-            { "name": "X-LendLoop-Timestamp", "value": "={{ $json.timestamp }}" }
+            {
+              "name": "X-LendLoop-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-LendLoop-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.rawBody }}",
-        "options": { "timeout": 10000 }
+        "options": {
+          "timeout": 10000
+        }
       }
     }
   ],
   "connections": {
-    "On workflow error": { "main": [[{ "node": "Log + sign failure report", "type": "main", "index": 0 }]] },
-    "Log + sign failure report": { "main": [[{ "node": "POST failure to Convex", "type": "main", "index": 0 }]] }
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Log + sign failure report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log + sign failure report": {
+      "main": [
+        [
+          {
+            "node": "POST failure to Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "pinData": {},
   "tags": []

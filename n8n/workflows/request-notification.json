@@ -16,13 +16,18 @@
       "name": "Loan event webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "webhookId": "5b2e8d0e-7a51-4f4a-9a43-0000000000a1",
       "parameters": {
         "httpMethod": "POST",
         "path": "lendloop-loan-events",
         "responseMode": "responseNode",
-        "options": { "rawBody": true }
+        "options": {
+          "rawBody": true
+        }
       }
     },
     {
@@ -30,7 +35,10 @@
       "name": "Verify signature",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "notes": "HMAC-SHA256 over `${timestamp}.${rawBody}`, constant-time compare, 5-minute replay window. Never throws: invalid requests are answered with 401 instead of triggering the error workflow.",
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -42,16 +50,27 @@
       "name": "Signature valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "c0000000-0000-4000-8000-000000000001",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -64,11 +83,16 @@
       "name": "Respond 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [660, 500],
+      "position": [
+        660,
+        500
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ error: 'unauthorized' }) }}",
-        "options": { "responseCode": 401 }
+        "options": {
+          "responseCode": 401
+        }
       }
     },
     {
@@ -76,7 +100,10 @@
       "name": "Compose message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 200],
+      "position": [
+        660,
+        200
+      ],
       "notes": "Uses only the data-minimised payload fields: first name, tool name, dates, status.",
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -88,16 +115,26 @@
       "name": "Send via SMTP?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [880, 200],
+      "position": [
+        880,
+        200
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "c0000000-0000-4000-8000-000000000002",
               "leftValue": "={{ $env.NOTIFY_MODE }}",
               "rightValue": "smtp",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -110,19 +147,29 @@
       "name": "Send email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1100, 100],
+      "position": [
+        1100,
+        100
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
       "onError": "continueErrorOutput",
-      "credentials": { "smtp": { "id": "LLsmtpMailhog001", "name": "LendLoop SMTP (MailHog)" } },
+      "credentials": {
+        "smtp": {
+          "id": "LLsmtpMailhog001",
+          "name": "LendLoop SMTP (MailHog)"
+        }
+      },
       "parameters": {
         "fromEmail": "={{ $env.NOTIFY_FROM }}",
         "toEmail": "={{ $json.to }}",
         "subject": "={{ $json.subject }}",
         "emailFormat": "text",
         "text": "={{ $json.text }}",
-        "options": { "appendAttribution": false }
+        "options": {
+          "appendAttribution": false
+        }
       }
     },
     {
@@ -130,7 +177,10 @@
       "name": "Log notification (mock)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 320],
+      "position": [
+        1100,
+        320
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "// Mock transport: log without the full address.\nconst [user, domain] = String($json.to).split('@');\nconsole.log(`[mock email] to ${user.slice(0, 2)}***@${domain} :: ${$json.subject}`);\nreturn { json: { mocked: true } };"
@@ -141,7 +191,10 @@
       "name": "Sign write-back (sent)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 200],
+      "position": [
+        1320,
+        200
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const crypto = require('crypto');\nconst msg = $('Compose message').first().json;\nconst rawBody = JSON.stringify({ loanId: msg.loanId, type: 'request_notification', idempotencyKey: msg.idempotencyKey, status: 'sent' });\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst signature = crypto.createHmac('sha256', $env.LENDLOOP_WEBHOOK_SECRET).update(`${timestamp}.${rawBody}`).digest('hex');\nreturn { json: { rawBody, timestamp, signature, outcome: 'sent' } };"
@@ -152,7 +205,10 @@
       "name": "Sign write-back (failed)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 0],
+      "position": [
+        1320,
+        0
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const crypto = require('crypto');\nconst msg = $('Compose message').first().json;\nconst error = String(($json.error && ($json.error.message || $json.error)) || 'send failed').slice(0, 300);\nconst rawBody = JSON.stringify({ loanId: msg.loanId, type: 'request_notification', idempotencyKey: msg.idempotencyKey, status: 'failed', error });\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst signature = crypto.createHmac('sha256', $env.LENDLOOP_WEBHOOK_SECRET).update(`${timestamp}.${rawBody}`).digest('hex');\nreturn { json: { rawBody, timestamp, signature, outcome: 'failed' } };"
@@ -163,7 +219,10 @@
       "name": "POST status to Convex",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 100],
+      "position": [
+        1540,
+        100
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
@@ -173,15 +232,23 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-LendLoop-Signature", "value": "={{ $json.signature }}" },
-            { "name": "X-LendLoop-Timestamp", "value": "={{ $json.timestamp }}" }
+            {
+              "name": "X-LendLoop-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-LendLoop-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.rawBody }}",
-        "options": { "timeout": 10000 }
+        "options": {
+          "timeout": 10000
+        }
       }
     },
     {
@@ -189,16 +256,27 @@
       "name": "Delivered or failed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1760, 100],
+      "position": [
+        1760,
+        100
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "c0000000-0000-4000-8000-000000000003",
               "leftValue": "={{ $('Sign write-back (failed)').isExecuted }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "false", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -211,11 +289,16 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1980, 0],
+      "position": [
+        1980,
+        0
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ ok: true }) }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -223,44 +306,167 @@
       "name": "Respond 502 (Convex will retry)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1980, 200],
+      "position": [
+        1980,
+        200
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ error: 'notification not sent' }) }}",
-        "options": { "responseCode": 502 }
+        "options": {
+          "responseCode": 502
+        }
       }
     }
   ],
   "connections": {
-    "Loan event webhook": { "main": [[{ "node": "Verify signature", "type": "main", "index": 0 }]] },
-    "Verify signature": { "main": [[{ "node": "Signature valid?", "type": "main", "index": 0 }]] },
-    "Signature valid?": {
+    "Loan event webhook": {
       "main": [
-        [{ "node": "Compose message", "type": "main", "index": 0 }],
-        [{ "node": "Respond 401", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Verify signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Compose message": { "main": [[{ "node": "Send via SMTP?", "type": "main", "index": 0 }]] },
+    "Verify signature": {
+      "main": [
+        [
+          {
+            "node": "Signature valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature valid?": {
+      "main": [
+        [
+          {
+            "node": "Compose message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose message": {
+      "main": [
+        [
+          {
+            "node": "Send via SMTP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Send via SMTP?": {
       "main": [
-        [{ "node": "Send email", "type": "main", "index": 0 }],
-        [{ "node": "Log notification (mock)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log notification (mock)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send email": {
       "main": [
-        [{ "node": "Sign write-back (sent)", "type": "main", "index": 0 }],
-        [{ "node": "Sign write-back (failed)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Sign write-back (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sign write-back (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Log notification (mock)": { "main": [[{ "node": "Sign write-back (sent)", "type": "main", "index": 0 }]] },
-    "Sign write-back (sent)": { "main": [[{ "node": "POST status to Convex", "type": "main", "index": 0 }]] },
-    "Sign write-back (failed)": { "main": [[{ "node": "POST status to Convex", "type": "main", "index": 0 }]] },
-    "POST status to Convex": { "main": [[{ "node": "Delivered or failed?", "type": "main", "index": 0 }]] },
+    "Log notification (mock)": {
+      "main": [
+        [
+          {
+            "node": "Sign write-back (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign write-back (sent)": {
+      "main": [
+        [
+          {
+            "node": "POST status to Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign write-back (failed)": {
+      "main": [
+        [
+          {
+            "node": "POST status to Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST status to Convex": {
+      "main": [
+        [
+          {
+            "node": "Delivered or failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Delivered or failed?": {
       "main": [
-        [{ "node": "Respond 200", "type": "main", "index": 0 }],
-        [{ "node": "Respond 502 (Convex will retry)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 502 (Convex will retry)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

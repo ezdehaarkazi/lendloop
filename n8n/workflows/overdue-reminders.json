@@ -16,9 +16,20 @@
       "name": "Every day 09:00 UTC",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 200],
+      "position": [
+        0,
+        200
+      ],
       "parameters": {
-        "rule": { "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 9 }] }
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9
+            }
+          ]
+        }
       }
     },
     {
@@ -26,7 +37,10 @@
       "name": "Run now (manual)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 400],
+      "position": [
+        0,
+        400
+      ],
       "parameters": {}
     },
     {
@@ -34,7 +48,10 @@
       "name": "Sign request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "notes": "Signed GET: HMAC over `${timestamp}.` (empty body). Convex rejects anything older than 5 minutes.",
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -46,7 +63,10 @@
       "name": "GET overdue loans",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000,
@@ -56,11 +76,19 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-LendLoop-Signature", "value": "={{ $json.signature }}" },
-            { "name": "X-LendLoop-Timestamp", "value": "={{ $json.timestamp }}" }
+            {
+              "name": "X-LendLoop-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-LendLoop-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
           ]
         },
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       }
     },
     {
@@ -68,15 +96,24 @@
       "name": "One item per loan",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [660, 300],
-      "parameters": { "fieldToSplitOut": "loans", "options": {} }
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "fieldToSplitOut": "loans",
+        "options": {}
+      }
     },
     {
       "id": "b2b2b2b2-0000-4000-8000-000000000006",
       "name": "Compose reminder",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 300],
+      "position": [
+        880,
+        300
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const l = $json;\nconst hi = l.borrower.firstName ? `Hi ${l.borrower.firstName},` : 'Hi,';\nconst days = l.daysOverdue === 1 ? '1 day' : `${l.daysOverdue} days`;\nreturn { json: {\n  to: l.borrower.email,\n  subject: `Reminder: please return ${l.toolName}`,\n  text: `${hi}\\n\\nFriendly reminder: ${l.toolName} was due back on ${l.endDate} (${days} ago). Please arrange the return with your neighbor and they'll mark it returned in LendLoop.\\n\\n— LendLoop`,\n  loanId: l.loanId,\n  idempotencyKey: l.idempotencyKey,\n} };"
@@ -87,16 +124,26 @@
       "name": "Send via SMTP?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1100, 300],
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "c1000000-0000-4000-8000-000000000001",
               "leftValue": "={{ $env.NOTIFY_MODE }}",
               "rightValue": "smtp",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -109,19 +156,29 @@
       "name": "Send reminder email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1320, 200],
+      "position": [
+        1320,
+        200
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
       "onError": "continueErrorOutput",
-      "credentials": { "smtp": { "id": "LLsmtpMailhog001", "name": "LendLoop SMTP (MailHog)" } },
+      "credentials": {
+        "smtp": {
+          "id": "LLsmtpMailhog001",
+          "name": "LendLoop SMTP (MailHog)"
+        }
+      },
       "parameters": {
         "fromEmail": "={{ $env.NOTIFY_FROM }}",
         "toEmail": "={{ $json.to }}",
         "subject": "={{ $json.subject }}",
         "emailFormat": "text",
         "text": "={{ $json.text }}",
-        "options": { "appendAttribution": false }
+        "options": {
+          "appendAttribution": false
+        }
       }
     },
     {
@@ -129,7 +186,10 @@
       "name": "Log reminder (mock)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 420],
+      "position": [
+        1320,
+        420
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const [user, domain] = String($json.to).split('@');\nconsole.log(`[mock email] to ${user.slice(0, 2)}***@${domain} :: ${$json.subject}`);\nreturn { json: { mocked: true } };"
@@ -140,7 +200,10 @@
       "name": "Sign write-back (sent)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 300],
+      "position": [
+        1540,
+        300
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const crypto = require('crypto');\nconst r = $('Compose reminder').item.json;\nconst rawBody = JSON.stringify({ loanId: r.loanId, type: 'overdue_reminder', idempotencyKey: r.idempotencyKey, status: 'sent' });\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst signature = crypto.createHmac('sha256', $env.LENDLOOP_WEBHOOK_SECRET).update(`${timestamp}.${rawBody}`).digest('hex');\nreturn { json: { rawBody, timestamp, signature } };"
@@ -151,7 +214,10 @@
       "name": "Sign write-back (failed)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 100],
+      "position": [
+        1540,
+        100
+      ],
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const crypto = require('crypto');\nconst r = $('Compose reminder').item.json;\nconst error = String(($json.error && ($json.error.message || $json.error)) || 'send failed').slice(0, 300);\nconst rawBody = JSON.stringify({ loanId: r.loanId, type: 'overdue_reminder', idempotencyKey: r.idempotencyKey, status: 'failed', error });\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst signature = crypto.createHmac('sha256', $env.LENDLOOP_WEBHOOK_SECRET).update(`${timestamp}.${rawBody}`).digest('hex');\nreturn { json: { rawBody, timestamp, signature } };"
@@ -162,7 +228,10 @@
       "name": "POST reminder status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1760, 200],
+      "position": [
+        1760,
+        200
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
@@ -172,40 +241,162 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-LendLoop-Signature", "value": "={{ $json.signature }}" },
-            { "name": "X-LendLoop-Timestamp", "value": "={{ $json.timestamp }}" }
+            {
+              "name": "X-LendLoop-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-LendLoop-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ $json.rawBody }}",
-        "options": { "timeout": 10000 }
+        "options": {
+          "timeout": 10000
+        }
       }
     }
   ],
   "connections": {
-    "Every day 09:00 UTC": { "main": [[{ "node": "Sign request", "type": "main", "index": 0 }]] },
-    "Run now (manual)": { "main": [[{ "node": "Sign request", "type": "main", "index": 0 }]] },
-    "Sign request": { "main": [[{ "node": "GET overdue loans", "type": "main", "index": 0 }]] },
-    "GET overdue loans": { "main": [[{ "node": "One item per loan", "type": "main", "index": 0 }]] },
-    "One item per loan": { "main": [[{ "node": "Compose reminder", "type": "main", "index": 0 }]] },
-    "Compose reminder": { "main": [[{ "node": "Send via SMTP?", "type": "main", "index": 0 }]] },
+    "Every day 09:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Sign request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now (manual)": {
+      "main": [
+        [
+          {
+            "node": "Sign request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign request": {
+      "main": [
+        [
+          {
+            "node": "GET overdue loans",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET overdue loans": {
+      "main": [
+        [
+          {
+            "node": "One item per loan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per loan": {
+      "main": [
+        [
+          {
+            "node": "Compose reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose reminder": {
+      "main": [
+        [
+          {
+            "node": "Send via SMTP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Send via SMTP?": {
       "main": [
-        [{ "node": "Send reminder email", "type": "main", "index": 0 }],
-        [{ "node": "Log reminder (mock)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send reminder email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log reminder (mock)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send reminder email": {
       "main": [
-        [{ "node": "Sign write-back (sent)", "type": "main", "index": 0 }],
-        [{ "node": "Sign write-back (failed)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Sign write-back (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sign write-back (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Log reminder (mock)": { "main": [[{ "node": "Sign write-back (sent)", "type": "main", "index": 0 }]] },
-    "Sign write-back (sent)": { "main": [[{ "node": "POST reminder status", "type": "main", "index": 0 }]] },
-    "Sign write-back (failed)": { "main": [[{ "node": "POST reminder status", "type": "main", "index": 0 }]] }
+    "Log reminder (mock)": {
+      "main": [
+        [
+          {
+            "node": "Sign write-back (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign write-back (sent)": {
+      "main": [
+        [
+          {
+            "node": "POST reminder status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign write-back (failed)": {
+      "main": [
+        [
+          {
+            "node": "POST reminder status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "pinData": {},
   "tags": []
