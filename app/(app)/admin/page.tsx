@@ -22,7 +22,7 @@ export default function AdminPage() {
   return (
     <>
       <PageHeader title="Admin" subtitle="Moderate listings, oversee loans and manage trust." />
-      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-stone-200" role="tablist">
+      <div className="mb-6 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-stone-200 [scrollbar-width:none]" role="tablist">
         {TABS.map((t) => (
           <button
             key={t}
@@ -170,6 +170,7 @@ function UserRow({
 function AutomationTab() {
   const health = useQuery(api.admin.automationHealth);
   const [retry, retrying] = useAction(useMutation(api.admin.retryDelivery), { success: "Retry scheduled" });
+  const [dismiss, dismissing] = useAction(useMutation(api.admin.dismissError), { success: "Error dismissed" });
   if (health === undefined) return <SkeletonList />;
 
   return (
@@ -218,13 +219,18 @@ function AutomationTab() {
         ) : (
           <div className="space-y-2">
             {health.errors.map((e) => (
-              <Card key={e._id}>
-                <p className="font-medium">
-                  {e.workflow}
-                  {e.node && <span className="text-stone-500"> → {e.node}</span>}
-                  <span className="ml-2 text-xs text-stone-400">{timeAgo(e.createdAt)}</span>
-                </p>
-                <p className="font-mono text-xs text-red-700">{e.message}</p>
+              <Card key={e._id} className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {e.workflow}
+                    {e.node && <span className="text-stone-500"> → {e.node}</span>}
+                    <span className="ml-2 text-xs text-stone-400">{timeAgo(e.createdAt)}</span>
+                  </p>
+                  <p className="font-mono text-xs break-words text-red-700">{e.message}</p>
+                </div>
+                <Button variant="ghost" pending={dismissing} onClick={() => dismiss({ errorId: e._id })}>
+                  Dismiss
+                </Button>
               </Card>
             ))}
           </div>

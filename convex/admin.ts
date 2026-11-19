@@ -148,6 +148,16 @@ export const automationHealth = query({
   },
 });
 
+/** Acknowledge a workflow error once it has been looked into. */
+export const dismissError = mutation({
+  args: { errorId: v.id("automationErrors") },
+  handler: async (ctx, { errorId }) => {
+    await requireAdmin(ctx);
+    if (!(await ctx.db.get(errorId))) throw new ConvexError("Already dismissed.");
+    await ctx.db.delete(errorId);
+  },
+});
+
 /** Manually re-drive a dead-lettered delivery. */
 export const retryDelivery = mutation({
   args: { deliveryId: v.id("webhookDeliveries") },

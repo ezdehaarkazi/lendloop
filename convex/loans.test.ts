@@ -105,9 +105,9 @@ describe("automation activity", () => {
       });
     });
     const [mine] = await borrower.as.query(api.loans.listMine, {});
-    expect(mine.activity.map((a) => `${a.type}:${a.status}`)).toEqual([
-      "overdue_reminder:failed",
-      "request_notification:sent",
+    expect(mine.activity.map((a) => `${a.label}:${a.status}`)).toEqual([
+      "Overdue reminder:failed",
+      "Request notice:sent",
     ]);
     const [incoming] = await owner.as.query(api.loans.listIncoming, {});
     expect(incoming.activity).toHaveLength(2);

@@ -114,6 +114,20 @@ export const cancel = mutation({
   },
 });
 
+const NOTICE_LABELS: Record<string, string> = {
+  requested: "Request notice",
+  approved: "Approval notice",
+  declined: "Decline notice",
+  cancelled: "Cancellation notice",
+  returned: "Return notice",
+};
+
+/** Human label; request notifications carry the loan status in their key (`loanId:status`). */
+function activityLabel(e: Doc<"automationEvents">): string {
+  if (e.type === "overdue_reminder") return "Overdue reminder";
+  return NOTICE_LABELS[e.idempotencyKey.split(":")[1] ?? ""] ?? "Notification";
+}
+
 /** Latest automation outcomes for a loan (n8n write-backs), newest first. */
 async function recentActivity(ctx: QueryCtx, loanId: Id<"loans">) {
   const events = await ctx.db
@@ -121,7 +135,7 @@ async function recentActivity(ctx: QueryCtx, loanId: Id<"loans">) {
     .withIndex("by_loan", (q) => q.eq("loanId", loanId))
     .order("desc")
     .take(3);
-  return events.map((e) => ({ type: e.type, status: e.status, at: e.createdAt }));
+  return events.map((e) => ({ label: activityLabel(e), status: e.status, at: e.createdAt }));
 }
 
 /** Shapes a loan for the UI, exposing only the counter-party's display name. */
