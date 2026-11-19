@@ -6,10 +6,13 @@ LendLoop is a neighborhood tool-lending board. Neighbors list tools, ask to borr
 
 Built with **Next.js 16 (App Router, TypeScript strict) · Clerk · Convex · n8n · Tailwind CSS**. Package manager: pnpm.
 
-| | |
+| Public landing (name + category only) | Browse with availability and Trusted Lender badges |
 |---|---|
-| ![Landing page](docs/screenshots/landing.png) | ![Browse tools](docs/screenshots/browse.png) |
-| ![Incoming requests with automation activity](docs/screenshots/incoming.png) | ![Admin → Automation](docs/screenshots/admin.png) |
+| ![Landing page](docs/screenshots/landing.jpg) | ![Browse tools](docs/screenshots/browse.jpg) |
+| **Incoming: approve/decline, live automation activity** | **Admin: all loans, overdue flagged** |
+| ![Incoming requests with automation activity](docs/screenshots/incoming.jpg) | ![Admin → Loans](docs/screenshots/admin-loans.jpg) |
+| **Admin → Automation: dead letters, retries, n8n errors** | |
+| ![Admin → Automation](docs/screenshots/admin-automation.jpg) | |
 
 ---
 
@@ -42,7 +45,7 @@ See [PRODUCTION.md](PRODUCTION.md) for what I'd change before going to productio
 - **My requests (`/me/requests`)**: the status of your requests. You can cancel one while it's still pending.
 - **Incoming (`/me/incoming`)**: approve or decline requests on your tools, and mark approved loans as returned. Grouped into *Waiting for you*, *Out on loan* and *History*.
 - **Admin (`/admin`)**: remove any listing, view all loans (overdue ones flagged), toggle Trusted Lender on a user, and see automation health: failed or pending deliveries with a **Retry** button, plus n8n workflow errors.
-- **Bonus**: every loan card shows its recent automation activity, e.g. "● Reminder sent 2 days ago" or "● Notification failed 1 hour ago".
+- **Bonus**: every loan card shows its recent automation activity, e.g. "● Approval notice sent just now" or "● Overdue reminder sent 2 days ago". Admins can dismiss handled workflow errors.
 
 **UX**: responsive layout with a mobile menu, skeleton loaders, empty states with a call to action, toasts for every action, and buttons that are disabled while their mutation runs. Destructive actions ask for confirmation inline.
 
@@ -338,7 +341,7 @@ The container gets `NODE_FUNCTION_ALLOW_BUILTIN=crypto`, so Code nodes can `requ
 ```bash
 pnpm lint        # ESLint (next/core-web-vitals + typescript; no-explicit-any = error)
 pnpm typecheck   # tsc --noEmit, strict
-pnpm test        # Vitest + convex-test (50 tests)
+pnpm test        # Vitest + convex-test (52 tests)
 pnpm check:secrets
 ```
 
