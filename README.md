@@ -144,16 +144,21 @@ cp .env.example .env           # docker-compose vars (n8n); only the n8n section
 ### 3. Convex
 
 ```bash
-npx convex dev            # log in and create a project (writes CONVEX_* to .env.local)
-# …or with no account: CONVEX_AGENT_MODE=anonymous npx convex dev  (local backend on :3210/:3211)
+# 1) Create the deployment (log in + pick a project; writes CONVEX_* to .env.local).
+#    The first push stops with "CLERK_JWT_ISSUER_DOMAIN … not set". That's expected: set it next.
+npx convex dev --once
+#    …or with no Convex account: CONVEX_AGENT_MODE=anonymous npx convex dev --once
+#    (local backend on :3210/:3211; keep CONVEX_AGENT_MODE=anonymous set for the commands below)
 
+# 2) Configure it
 npx convex env set CLERK_JWT_ISSUER_DOMAIN https://xyz.clerk.accounts.dev
 npx convex env set ADMIN_EMAILS you@example.com          # auto-promotes on sign-in
 npx convex env set N8N_WEBHOOK_SECRET "$(openssl rand -hex 32)"
 npx convex env set N8N_WEBHOOK_URL http://localhost:5678/webhook/lendloop-loan-events
-```
 
-Keep `npx convex dev` running in its own terminal.
+# 3) Run it (leave this terminal open)
+npx convex dev
+```
 
 ### 4. n8n + MailHog
 
