@@ -125,9 +125,18 @@ cp .env.example .env           # docker-compose vars (n8n); only the n8n section
 
 1. Create an application at <https://dashboard.clerk.com> (Email and/or Google sign-in).
 2. **API keys** → copy `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` into `.env.local`.
-3. **Integrations → Convex → Activate.** This creates the `convex` JWT template (`aud: convex`) that `ConvexProviderWithClerk` requests. Copy the **Frontend API URL** shown there (e.g. `https://xyz.clerk.accounts.dev`) for step 3.
+3. **Integrations → Convex → Activate.** This adds `aud: "convex"` to Clerk session tokens so Convex accepts them. Copy the **Frontend API URL** shown there (e.g. `https://xyz.clerk.accounts.dev`) for step 3.
+4. **Sessions → Customize session token**: add these claims so Convex learns the user's name and email. `ADMIN_EMAILS` and notification emails depend on them:
 
-> Without step 3 the app loads, but the backend can't verify your session, and the app shows a setup hint.
+   ```json
+   {
+     "name": "{{user.full_name}}",
+     "given_name": "{{user.first_name}}",
+     "email": "{{user.primary_email_address}}"
+   }
+   ```
+
+> Without step 3 the app loads, but the backend can't verify your session, and the app shows a setup hint. Without step 4 sign-in works, but users show up as "Neighbor" with no email, so they can't be auto-promoted or emailed. The user row refreshes from these claims on the next sign-in or page load.
 
 ### 3. Convex
 

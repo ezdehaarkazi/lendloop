@@ -23,6 +23,13 @@ describe("requireUser", () => {
     expect(user).toMatchObject({ name: "Alice", email: "alice@example.com", role: "user", trustedLender: false });
   });
 
+  it("falls back sensibly when the token has no/empty profile claims", async () => {
+    const t = setup();
+    const bare = t.withIdentity({ subject: "clerk_bare", name: "", email: "" });
+    const id = await bare.mutation(api.users.store, {});
+    expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({ name: "Neighbor", email: "", role: "user" });
+  });
+
   it("upserts on first mutation even without calling users.store", async () => {
     const t = setup();
     const as = t.withIdentity({ subject: "clerk_new", name: "New", email: "new@example.com" });

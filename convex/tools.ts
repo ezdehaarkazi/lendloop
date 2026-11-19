@@ -28,15 +28,16 @@ async function activeTools(ctx: QueryCtx, category?: Doc<"tools">["category"]) {
   return rows.filter((t) => t.deletedAt === undefined);
 }
 
-/** A tool is "on loan" if an approved loan covers today. */
+/**
+ * A tool is "on loan" once an approved loan has started and until it's marked
+ * returned — including past its end date (overdue tools are still out).
+ */
 async function isOnLoanToday(ctx: QueryCtx, toolId: Id<"tools">, today: string) {
   const loans = await ctx.db
     .query("loans")
     .withIndex("by_tool", (q) => q.eq("toolId", toolId))
     .collect();
-  return loans.some(
-    (l) => l.status === "approved" && l.startDate <= today && today <= l.endDate,
-  );
+  return loans.some((l) => l.status === "approved" && l.startDate <= today);
 }
 
 /**

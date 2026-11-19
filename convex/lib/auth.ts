@@ -36,8 +36,10 @@ export async function upsertUserFromIdentity(ctx: MutationCtx): Promise<Doc<"use
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new ConvexError("You must be signed in.");
 
-  const email = (identity.email ?? "").toLowerCase();
-  const name = identity.name ?? identity.givenName ?? email.split("@")[0] ?? "Neighbor";
+  // Claims come from the Clerk session token (see README → "Clerk session claims").
+  // `||` rather than `??` because templated claims render as "" when unset.
+  const email = (identity.email || "").trim().toLowerCase();
+  const name = (identity.name || identity.givenName || email.split("@")[0] || "Neighbor").trim();
   const shouldBeAdmin = email !== "" && identity.emailVerified !== false && adminEmails().has(email);
 
   const existing = await ctx.db

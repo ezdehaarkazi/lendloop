@@ -80,6 +80,18 @@ describe("loan flow", () => {
   });
 });
 
+describe("availability", () => {
+  it("keeps an overdue tool 'on loan' until it is marked returned", async () => {
+    const { t, owner, borrower, toolId } = await scenario();
+    const loanId = await borrower.as.mutation(api.loans.request, { toolId, startDate: isoDay(0), endDate: isoDay(1) });
+    await owner.as.mutation(api.loans.approve, { loanId });
+    await t.run((ctx) => ctx.db.patch(loanId, { startDate: isoDay(-5), endDate: isoDay(-2) }));
+    expect((await borrower.as.query(api.tools.list, {}))[0].onLoan).toBe(true);
+    await owner.as.mutation(api.loans.markReturned, { loanId });
+    expect((await borrower.as.query(api.tools.list, {}))[0].onLoan).toBe(false);
+  });
+});
+
 describe("automation activity", () => {
   it("shows n8n write-backs on the loan for both parties, newest first", async () => {
     const { t, owner, borrower, toolId } = await scenario();
