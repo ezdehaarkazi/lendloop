@@ -114,12 +114,23 @@ export const cancel = mutation({
   },
 });
 
+/** Latest automation outcomes for a loan (n8n write-backs), newest first. */
+async function recentActivity(ctx: QueryCtx, loanId: Id<"loans">) {
+  const events = await ctx.db
+    .query("automationEvents")
+    .withIndex("by_loan", (q) => q.eq("loanId", loanId))
+    .order("desc")
+    .take(3);
+  return events.map((e) => ({ type: e.type, status: e.status, at: e.createdAt }));
+}
+
 /** Shapes a loan for the UI, exposing only the counter-party's display name. */
 async function toLoanView(ctx: QueryCtx, loan: Doc<"loans">, viewer: "owner" | "borrower") {
   const today = todayUtc();
-  const [tool, other] = await Promise.all([
+  const [tool, other, activity] = await Promise.all([
     ctx.db.get(loan.toolId),
     ctx.db.get(viewer === "owner" ? loan.borrowerId : loan.ownerId),
+    recentActivity(ctx, loan._id),
   ]);
   return {
     _id: loan._id,
@@ -133,6 +144,7 @@ async function toLoanView(ctx: QueryCtx, loan: Doc<"loans">, viewer: "owner" | "
     overdue: loan.status === "approved" && loan.endDate < today,
     createdAt: loan.createdAt,
     returnedAt: loan.returnedAt,
+    activity,
   };
 }
 

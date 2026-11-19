@@ -80,6 +80,28 @@ describe("loan flow", () => {
   });
 });
 
+describe("automation activity", () => {
+  it("shows n8n write-backs on the loan for both parties, newest first", async () => {
+    const { t, owner, borrower, toolId } = await scenario();
+    const loanId = await borrower.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("automationEvents", {
+        loanId, type: "request_notification", idempotencyKey: `${loanId}:requested`, status: "sent", createdAt: 1,
+      });
+      await ctx.db.insert("automationEvents", {
+        loanId, type: "overdue_reminder", idempotencyKey: `${loanId}:2026-01-01`, status: "failed", createdAt: 2,
+      });
+    });
+    const [mine] = await borrower.as.query(api.loans.listMine, {});
+    expect(mine.activity.map((a) => `${a.type}:${a.status}`)).toEqual([
+      "overdue_reminder:failed",
+      "request_notification:sent",
+    ]);
+    const [incoming] = await owner.as.query(api.loans.listIncoming, {});
+    expect(incoming.activity).toHaveLength(2);
+  });
+});
+
 describe("outbox", () => {
   it("writes a data-minimized, signed-ready payload for each status change", async () => {
     const { t, owner, borrower, toolId } = await scenario();

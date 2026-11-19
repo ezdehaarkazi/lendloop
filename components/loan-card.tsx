@@ -4,18 +4,17 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LoanView } from "@/convex/loans";
 import { formatRange, timeAgo } from "@/lib/format";
+import { AutomationActivity } from "./automation-activity";
 import { Card, StatusBadge } from "./ui";
 
 export function LoanCard({
   loan,
   counterpartLabel,
   actions,
-  footer,
 }: {
   loan: LoanView;
   counterpartLabel: string;
   actions?: ReactNode;
-  footer?: ReactNode;
 }) {
   return (
     <Card>
@@ -38,7 +37,7 @@ export function LoanCard({
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
-      {footer}
+      <AutomationActivity activity={loan.activity} />
     </Card>
   );
 }
