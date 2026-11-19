@@ -16,6 +16,14 @@ export const overdueLoans = internalQuery({
       .take(500);
     const rows = await Promise.all(
       loans.map(async (loan) => {
+        const idempotencyKey = `${loan._id}:${today}`;
+        // Already reminded today → skip, so re-running the workflow never double-sends.
+        const done = await ctx.db
+          .query("automationEvents")
+          .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
+          .unique();
+        if (done?.status === "sent") return null;
+
         const [tool, borrower] = await Promise.all([
           ctx.db.get(loan.toolId),
           ctx.db.get(loan.borrowerId),
@@ -30,7 +38,7 @@ export const overdueLoans = internalQuery({
             email: borrower.email,
             firstName: borrower.name.trim().split(/\s+/)[0] ?? "",
           },
-          idempotencyKey: `${loan._id}:${today}`,
+          idempotencyKey,
         };
       }),
     );

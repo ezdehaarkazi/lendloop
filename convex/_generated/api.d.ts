@@ -19,6 +19,7 @@ import type * as lib_loanState from "../lib/loanState.js";
 import type * as lib_outbox from "../lib/outbox.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as loans from "../loans.js";
+import type * as seed from "../seed.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 import type * as webhooks from "../webhooks.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/outbox": typeof lib_outbox;
   "lib/validators": typeof lib_validators;
   loans: typeof loans;
+  seed: typeof seed;
   tools: typeof tools;
   users: typeof users;
   webhooks: typeof webhooks;

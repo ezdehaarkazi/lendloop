@@ -1,0 +1,61 @@
+{
+  "id": "LLerrorHandler01",
+  "name": "LendLoop - Error handler",
+  "active": false,
+  "isArchived": false,
+  "settings": { "executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "all" },
+  "nodes": [
+    {
+      "id": "e3e3e3e3-0000-4000-8000-000000000001",
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {}
+    },
+    {
+      "id": "e3e3e3e3-0000-4000-8000-000000000002",
+      "name": "Log + sign failure report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "notes": "Logs to the n8n container output and reports the failure to Convex so it shows on the Admin → Automation tab. No payload data is forwarded, only workflow/node/message.",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require('crypto');\nconst e = $input.first().json;\nconst exec = e.execution || {};\nconst trigErr = (e.trigger && e.trigger.error) || {};\nconst report = {\n  workflow: (e.workflow && e.workflow.name) || 'unknown workflow',\n  node: exec.lastNodeExecuted || (trigErr.node && trigErr.node.name) || undefined,\n  message: String((exec.error && exec.error.message) || trigErr.message || 'Unknown error').slice(0, 1000),\n  executionId: exec.id ? String(exec.id) : undefined,\n};\nconsole.error('[LendLoop workflow failure]', JSON.stringify(report));\nconst rawBody = JSON.stringify(report);\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst signature = crypto.createHmac('sha256', $env.LENDLOOP_WEBHOOK_SECRET).update(`${timestamp}.${rawBody}`).digest('hex');\nreturn [{ json: { rawBody, timestamp, signature } }];"
+      }
+    },
+    {
+      "id": "e3e3e3e3-0000-4000-8000-000000000003",
+      "name": "POST failure to Convex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LENDLOOP_CONVEX_SITE_URL }}/automation/workflow-error",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-LendLoop-Signature", "value": "={{ $json.signature }}" },
+            { "name": "X-LendLoop-Timestamp", "value": "={{ $json.timestamp }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": { "timeout": 10000 }
+      }
+    }
+  ],
+  "connections": {
+    "On workflow error": { "main": [[{ "node": "Log + sign failure report", "type": "main", "index": 0 }]] },
+    "Log + sign failure report": { "main": [[{ "node": "POST failure to Convex", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "tags": []
+}

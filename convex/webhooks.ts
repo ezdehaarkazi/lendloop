@@ -6,7 +6,8 @@ import { MAX_DELIVERY_ATTEMPTS, backoffMs } from "./lib/outbox";
 
 /** How long a claimed delivery is reserved before the sweeper may retry it. */
 const LEASE_MS = 2 * 60_000;
-const REQUEST_TIMEOUT_MS = 10_000;
+// Must exceed n8n's worst case (3 SMTP tries + waits) so we see its 502, not a timeout.
+const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
  * Atomically claims a pending delivery that is due. Returns null if it was

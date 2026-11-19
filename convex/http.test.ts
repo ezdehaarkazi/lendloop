@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { sign } from "./lib/hmac";
@@ -87,6 +87,23 @@ describe("POST /automation/reminder-status", () => {
 
     const events = await t.run((ctx) => ctx.db.query("automationEvents").collect());
     expect(events).toHaveLength(1);
+
+    // Once reminded today, the loan drops out of the overdue feed (no double-send on re-run).
+    const feed = await t.fetch("/automation/overdue-loans", { headers: await signedHeaders("") });
+    expect((await feed.json()).loans).toHaveLength(0);
+  });
+
+  it("lets a later 'sent' supersede an earlier 'failed' without a new record", async () => {
+    const t = setup();
+    const loanId = await overdueLoan(t);
+    const key = `${loanId}:${isoDay(0)}`;
+    for (const status of ["failed", "sent"]) {
+      const body = JSON.stringify({ loanId, type: "overdue_reminder", idempotencyKey: key, status });
+      await t.fetch("/automation/reminder-status", { method: "POST", body, headers: await signedHeaders(body) });
+    }
+    const events = await t.run((ctx) => ctx.db.query("automationEvents").collect());
+    expect(events).toHaveLength(1);
+    expect(events[0].status).toBe("sent");
   });
 
   it("rejects bodies with a key for a different loan or bad fields", async () => {
