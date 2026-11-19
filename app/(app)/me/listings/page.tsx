@@ -52,7 +52,14 @@ function ListingRow({ tool }: { tool: Doc<"tools"> }) {
       <div className="flex gap-2">
         {confirming ? (
           <>
-            <Button variant="danger" pending={removing} onClick={() => remove({ toolId: tool._id })}>
+            <Button
+              variant="danger"
+              pending={removing}
+              onClick={async () => {
+                // Mutations resolve to null on success; undefined means it failed (toast shown).
+                if ((await remove({ toolId: tool._id })) === undefined) setConfirming(false);
+              }}
+            >
               Confirm delete
             </Button>
             <Button variant="ghost" disabled={removing} onClick={() => setConfirming(false)}>
