@@ -100,23 +100,24 @@ function LoansTab() {
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
           <tr>
+            {/* Status second so it's visible on phones without scrolling the table. */}
             <th className="px-4 py-2">Tool</th>
+            <th className="px-4 py-2">Status</th>
+            <th className="px-4 py-2">Dates</th>
             <th className="px-4 py-2">Borrower</th>
             <th className="px-4 py-2">Owner</th>
-            <th className="px-4 py-2">Dates</th>
-            <th className="px-4 py-2">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-100">
           {loans.map((l) => (
             <tr key={l._id}>
               <td className="px-4 py-2 font-medium">{l.toolName}</td>
-              <td className="px-4 py-2">{l.borrowerName}</td>
-              <td className="px-4 py-2">{l.ownerName}</td>
-              <td className="px-4 py-2 whitespace-nowrap">{formatRange(l.startDate, l.endDate)}</td>
               <td className="px-4 py-2">
                 <StatusBadge status={l.status} overdue={l.overdue} />
               </td>
+              <td className="px-4 py-2 whitespace-nowrap">{formatRange(l.startDate, l.endDate)}</td>
+              <td className="px-4 py-2">{l.borrowerName}</td>
+              <td className="px-4 py-2">{l.ownerName}</td>
             </tr>
           ))}
         </tbody>
