@@ -2,6 +2,15 @@
 
 This note covers what I would change before real neighbors use LendLoop. Items are grouped by area and ordered by priority within each group.
 
+## Current production setup
+
+- **App and n8n:** self-hosted with Coolify on an Oracle Cloud Arm VM. n8n runs with PostgreSQL and external task runners; only `/webhook/*` is used publicly.
+- **Backend:** Convex Cloud production deployment.
+- **Auth:** Clerk.
+- **Email:** Resend SMTP from a verified domain (DKIM, SPF, DMARC).
+
+Everything below is what I'd change on top of this setup.
+
 ## 1. n8n runtime
 
 - **Managed or hardened n8n.** Use n8n Cloud, or self-host in **queue mode**: a main instance, workers, Redis (BullMQ) and Postgres instead of SQLite. Queue mode lets webhook intake scale independently of execution and survives a worker crash mid-run.
@@ -64,6 +73,7 @@ Convex Cloud (prod deployment) ─ HTTP actions at *.convex.site
 Secrets Manager → ECS task env / n8n external secrets;  SES for email
 ```
 
+- **Mapping from today's setup:** Coolify app → ECS Fargate behind ALB + CloudFront; n8n → ECS Fargate + RDS Postgres in queue mode; secrets → Secrets Manager; SMTP → SES; logs → CloudWatch + CloudTrail.
 - **Next.js** on Vercel is simplest. For an all-AWS setup, use Amplify Hosting or OpenNext on Lambda behind CloudFront.
 - **n8n on ECS Fargate**:
   - private subnets; the ALB exposes **only** `/webhook/*` publicly;

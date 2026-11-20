@@ -6,6 +6,15 @@ LendLoop is a neighborhood tool-lending board. Neighbors list tools, ask to borr
 
 Built with **Next.js 16 (App Router, TypeScript strict) · Clerk · Convex · n8n · Tailwind CSS**. Package manager: pnpm.
 
+[![CI](https://github.com/ezdehaarkazi/lendloop/actions/workflows/ci.yml/badge.svg)](https://github.com/ezdehaarkazi/lendloop/actions/workflows/ci.yml)
+
+- **Live demo:** <https://lendloop.demovault.tech>
+- **Walkthrough video:** [Loom — 3 min](LOOM_LINK_PLACEHOLDER)
+
+Demo data is seeded (3 neighbors, 5 tools, a pending request and an overdue loan). Sign in with Google or email to try it — new accounts are regular users.
+
+![LendLoop walkthrough](docs/screenshots/lendloop-walkthrough.gif)
+
 | Public landing (name + category only) | Browse with availability and Trusted Lender badges |
 |---|---|
 | ![Landing page](docs/screenshots/landing.jpg) | ![Browse tools](docs/screenshots/browse.jpg) |
@@ -20,14 +29,15 @@ Built with **Next.js 16 (App Router, TypeScript strict) · Clerk · Convex · n8
 
 1. [Features](#features)
 2. [Architecture](#architecture)
-3. [Local setup](#local-setup-step-by-step)
-4. [Environment variables](#environment-variables)
-5. [Security design](#security-design): RBAC, state machine, webhook signing, data minimization
-6. [Reliability design](#reliability-design): outbox, retries, idempotency, error handling
-7. [n8n workflows](#n8n-workflows)
-8. [Testing & quality](#testing--quality)
-9. [Project structure](#project-structure)
-10. [Trade-offs & decisions](#trade-offs--decisions)
+3. [Live deployment](#live-deployment)
+4. [Local setup](#local-setup-step-by-step)
+5. [Environment variables](#environment-variables)
+6. [Security design](#security-design): RBAC, state machine, webhook signing, data minimization
+7. [Reliability design](#reliability-design): outbox, retries, idempotency, error handling
+8. [n8n workflows](#n8n-workflows)
+9. [Testing & quality](#testing--quality)
+10. [Project structure](#project-structure)
+11. [Trade-offs & decisions](#trade-offs--decisions)
 
 See [PRODUCTION.md](PRODUCTION.md) for what I'd change before going to production.
 
@@ -109,6 +119,66 @@ sequenceDiagram
   N->>C: POST /automation/reminder-status (signed, idempotent)
   N-->>O: 200 → delivered   (5xx/timeout → backoff retry, max 5)
 ```
+
+---
+
+## Live deployment
+
+The demo runs at <https://lendloop.demovault.tech>.
+
+| Component | Where |
+|---|---|
+| Next.js app | Self-hosted on Oracle Cloud (Arm VM) via Coolify, built from this repo with Railpack, HTTPS via Let's Encrypt — `lendloop.demovault.tech` |
+| Convex | Convex Cloud production deployment |
+| n8n | Self-hosted on the same VM via Coolify (n8n + PostgreSQL + external task runners), HTTPS — `n8n.demovault.tech`. The editor is private; only `/webhook/*` is used publicly |
+| Auth | Clerk |
+| Email | Resend SMTP from a verified domain (DKIM, SPF, DMARC), sender `noreply@demovault.tech` |
+
+```mermaid
+flowchart LR
+  B[Browser]
+  subgraph VM [Oracle Cloud VM - Coolify]
+    APP[Next.js app<br/>lendloop.demovault.tech]
+    N8N[n8n + PostgreSQL<br/>n8n.demovault.tech]
+    ERR[n8n error workflow]
+  end
+  subgraph CC [Convex Cloud - prod]
+    CQ[Queries & mutations]
+    CH[HTTP actions<br/>/automation/*]
+  end
+  CLERK[(Clerk)]
+  RESEND[(Resend SMTP)]
+  INBOX[Recipient inbox]
+
+  B --> APP
+  B -- sign in --> CLERK
+  APP -- "Convex client + Clerk JWT" --> CQ
+  CQ -- "HMAC-signed POST /webhook/*" --> N8N
+  N8N -- "HMAC-signed GET/POST" --> CH
+  N8N --> RESEND --> INBOX
+  N8N -. on failure .-> ERR
+  ERR -- "signed POST /automation/workflow-error" --> CH
+```
+
+**Verified in production**
+- Unsigned or tampered request to the n8n webhook → `401`.
+- Seeded request → Workflow A delivered on first attempt → write-back recorded as `sent`.
+- Overdue reminders run → reminder sent → idempotent write-back (a same-day re-run sends nothing).
+- n8n → Convex signed requests accepted (shared secret matches on both sides).
+- Real email delivery through Resend, with "Notification sent" labels appearing on loan cards.
+
+**Production environment** (names only):
+- **Convex prod:** `CLERK_JWT_ISSUER_DOMAIN`, `ADMIN_EMAILS`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`
+- **Next.js app:** `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CONVEX_SITE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- **n8n container:** `LENDLOOP_WEBHOOK_SECRET`, `LENDLOOP_CONVEX_SITE_URL`, `NOTIFY_MODE=smtp`, `NOTIFY_FROM`, `NODE_FUNCTION_ALLOW_BUILTIN=crypto`, `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`
+- The SMTP password (a sending-only Resend API key scoped to one domain) lives only in an n8n credential.
+
+**Deploy steps**
+1. Coolify → "Public Git Repository" → Railpack → port 3000 → domain → the Next.js env vars above.
+2. Coolify → "n8n with PostgreSQL" service → add the n8n env vars to the compose file for both the `n8n` and task-runners services (Coolify only passes variables referenced in the compose file).
+3. Import the three workflows from `n8n/workflows`, attach the SMTP credential, set "LendLoop - Error handler" as the error workflow, publish.
+4. `npx convex deploy`
+5. Optional demo data: `npx convex run seed:run`
 
 ---
 
@@ -330,6 +400,8 @@ I ran all of this against the running stack:
 ## n8n workflows
 
 Exported in [`n8n/workflows/`](n8n/workflows/). Imported with `pnpm n8n:import`.
+
+In production the SMTP credential is 'Resend SMTP'; locally it's the MailHog credential from `n8n/credentials/`. Both workflows use 'LendLoop - Error handler' as their error workflow.
 
 After editing a workflow in the n8n UI, run **`pnpm n8n:export`**. It exports from the running container and strips instance-specific data: project/owner info in `shared`, timestamps, version ids, pinned data. It then writes the files and runs `pnpm check:secrets`, so a secret can't be committed by accident.
 
