@@ -9,7 +9,6 @@ Built with **Next.js 16 (App Router, TypeScript strict) · Clerk · Convex · n8
 [![CI](https://github.com/ezdehaarkazi/lendloop/actions/workflows/ci.yml/badge.svg)](https://github.com/ezdehaarkazi/lendloop/actions/workflows/ci.yml)
 
 - **Live demo:** <https://lendloop.demovault.tech>
-- **Walkthrough video:** [Loom — 3 min](LOOM_LINK_PLACEHOLDER)
 
 Demo data is seeded (3 neighbors, 5 tools, a pending request and an overdue loan). Sign in with Google or email to try it — new accounts are regular users.
 
